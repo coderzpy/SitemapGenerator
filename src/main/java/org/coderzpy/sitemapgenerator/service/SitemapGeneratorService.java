@@ -30,7 +30,7 @@ public class SitemapGeneratorService {
             sitemap.append("  </url>\n");
         }
 
-        sitemap.append("\"</urlset>\"");
+        sitemap.append("</urlset>\n");
         return sitemap.toString();
     }
 

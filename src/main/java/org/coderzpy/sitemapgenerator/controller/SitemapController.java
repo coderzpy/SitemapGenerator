@@ -28,7 +28,7 @@ public class SitemapController {
     @GetMapping(value = "/sitemap.xml", produces = "application/xml")
     public ResponseEntity<String> generatedSitemap(@RequestParam String url) {
         try {
-            Set<String> crawledUrls = webCrawlerService.crawl(url);
+            Set<String> crawledUrls = webCrawlerService.crawl(url, 3);
             Map<String, String[]> urlDetails = new HashMap<>();
 
             String lastmod = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME); // Use current time for demo
