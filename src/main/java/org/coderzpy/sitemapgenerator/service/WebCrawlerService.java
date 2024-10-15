@@ -8,41 +8,53 @@ import org.springframework.stereotype.Service;
 
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Service
 public class WebCrawlerService {
 
-    private final Set<String> visitedUrls = new HashSet<>();
+    private final Set<String> visitedUrls = Collections.synchronizedSet(new HashSet<>());
     private String baseUrl;
+    private ExecutorService executorService;
 
-    public Set<String> crawl(String startUrl, int maxDepth) throws Exception {
+    public WebCrawlerService() {
+        this.executorService = Executors.newFixedThreadPool(10);
+    }
 
+    public Set<String> crawl(String startUrl) throws Exception {
         this.baseUrl = startUrl;
         //crawlPage(startUrl);
-        Queue<UrlDepthPair> queue = new LinkedList<>();
-        queue.add(new UrlDepthPair(baseUrl, 0));
+        Queue<String> queue = new LinkedList<>();
+        queue.add(startUrl);
 
         while(!queue.isEmpty()) {
-            UrlDepthPair current = queue.poll();
-            String currentUrl = current.url;
-            int currentDepth = current.depth;
+            String currentUrl = queue.poll();
+            //String currentUrl = current.url;
+            //int currentDepth = current.depth;
 
-            if(!visitedUrls.contains(currentUrl) && currentDepth <= maxDepth) {
+            if(!visitedUrls.contains(currentUrl)) {
 
                 visitedUrls.add(currentUrl);
-                Set<String> newLinks = fetchLinks(currentUrl);
+                Future<Set<String>> futureLinks = executorService.submit(() -> fetchLinks(currentUrl));
 
-                for (String link: newLinks) {
-                    if (!visitedUrls.contains(link)) {
-                        queue.add(new UrlDepthPair(link, currentDepth + 1));
+                try {
+                    Set<String> newLinks = futureLinks.get();
+
+                    for (String link: newLinks) {
+                        if (!visitedUrls.contains(link)) {
+                            queue.add(link);
+                        }
                     }
+                } catch (Exception e) {
+                    System.err.println("Error fetching links: " + e.getMessage());
                 }
+
             }
         }
+        executorService.shutdown();
         return visitedUrls;
     }
 
